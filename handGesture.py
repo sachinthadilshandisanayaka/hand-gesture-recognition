@@ -20,8 +20,8 @@ while(True):
         
         
     # define range of skin color in HSV
-        lower_skin = np.array([0,20,70], dtype=np.uint8)
-        upper_skin = np.array([20,255,255], dtype=np.uint8)
+        lower_skin = np.array([0, 10, 60], dtype=np.uint8)
+        upper_skin = np.array([20, 150, 255], dtype=np.uint8)
         
      #extract skin colur imagw  
         mask = cv2.inRange(hsv, lower_skin, upper_skin)
