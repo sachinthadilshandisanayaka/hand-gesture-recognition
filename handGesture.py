@@ -9,30 +9,21 @@ while(True):
           
         ret, frame = cap.read()
         frame=cv2.flip(frame,1)
-        kernel = np.ones((3,3),np.uint8)
         
-        #define region of interest
         roi=frame[100:400, 100:400]
-        
         
         cv2.rectangle(frame,(100,100),(400,400),(0,255,0),0)    
         hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
         
-        
-    # define range of skin color in HSV
         lower_skin = np.array([0, 10, 60], dtype=np.uint8)
         upper_skin = np.array([20, 150, 255], dtype=np.uint8)
-        
-     #extract skin colur imagw  
+          
         mask = cv2.inRange(hsv, lower_skin, upper_skin)
         
-   
-        
-    #extrapolate the hand to fill dark spots within
+        kernel = np.ones((3,3),np.uint8)
         mask = cv2.dilate(mask,kernel,iterations = 4)
         
-    #blur the image
-        mask = cv2.GaussianBlur(mask,(5,5),100) 
+        mask = cv2.GaussianBlur(mask,(5,5),cv2.BORDER_DEFAULT) 
         
         
         
@@ -142,7 +133,6 @@ while(True):
     
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
-  
-cap.release()
+
 cv2.destroyAllWindows()
- 
+cap.release() 
