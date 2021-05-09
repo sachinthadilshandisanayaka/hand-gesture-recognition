@@ -23,12 +23,13 @@ while(True):
         kernel = np.ones((3,3),np.uint8)
         mask = cv2.dilate(mask,kernel,iterations = 4)
         
-        mask = cv2.GaussianBlur(mask,(5,5),cv2.BORDER_DEFAULT) 
+        mask = cv2.GaussianBlur(mask,(5,5),100) 
         
         contours,hierarchy= cv2.findContours(mask,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
     
    #find contour of max area(hand)
         cnt = max(contours, key = lambda x: cv2.contourArea(x))
+        print("Number of counters :" + str(len(contours)))
         
     #approx the contour a little
         epsilon = 0.0005*cv2.arcLength(cnt,True)
