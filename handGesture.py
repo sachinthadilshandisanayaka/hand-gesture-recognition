@@ -25,9 +25,6 @@ while(True):
         
         mask = cv2.GaussianBlur(mask,(5,5),cv2.BORDER_DEFAULT) 
         
-        
-        
-    #find contours
         contours,hierarchy= cv2.findContours(mask,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
     
    #find contour of max area(hand)
