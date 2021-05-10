@@ -26,7 +26,7 @@ while(True):
         mask = cv2.GaussianBlur(mask,(5,5),100) 
         
         contours,hierarchy= cv2.findContours(mask,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-    
+        
    #find contour of max area(hand)
         cnt = max(contours, key = lambda x: cv2.contourArea(x))
         print("Number of counters :" + str(len(contours)))
@@ -34,7 +34,7 @@ while(True):
     #approx the contour a little
         epsilon = 0.0005*cv2.arcLength(cnt,True)
         approx= cv2.approxPolyDP(cnt,epsilon,True)
-       
+        
         
     #make convex hull around hand
         hull = cv2.convexHull(cnt)
