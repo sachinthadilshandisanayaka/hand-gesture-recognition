@@ -32,7 +32,7 @@ while(True):
         print("Number of counters :" + str(len(contours)))
         
     #approx the contour a little
-        epsilon = 0.0005*cv2.arcLength(cnt,True)
+        epsilon = 0.5*cv2.arcLength(cnt,True)
         approx= cv2.approxPolyDP(cnt,epsilon,True)
         
         
