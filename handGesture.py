@@ -28,6 +28,33 @@ while(True):
         
         contours,hierarchy= cv2.findContours(mask,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
         
+        #
+        if len(contours)>0:
+            maxArea = 0
+            hull1 = []
+            fingerList = []
+            for i in range (len(contours)):
+                cnt = contours[i]
+                area = cv2.contourArea(cnt)
+                if area>maxArea : 
+                    maxArea = area
+                    ci = i
+            cnts = contours[ci]
+            hull2 = cv2.convexHull(cnts)
+        
+            hull1 = cv2.convexHull(cnts, returnPoints=False)
+            defects = cv2.convexityDefects(cnts, hull1)
+            moments = cv2.moments(contours[ci])
+            #Central mass 
+            if moments['m00']!=0:   #m00 moments spatiaux
+                cx = int(moments['m10']/moments['m00']) # cx = M10/M00
+                cy = int(moments['m01']/moments['m00']) # cy = M01/M00
+            centerMass=(cx,cy)
+            cv2.circle(roi,centerMass,7,[100,0,255],2)
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            cv2.putText(roi,'Center',tuple(centerMass),font,0.5,(255,255,255),1)
+        #
+        
    #find contour of max area(hand)
         cnt = max(contours, key = lambda x: cv2.contourArea(x))
         print("Number of counters :" + str(len(contours)))
