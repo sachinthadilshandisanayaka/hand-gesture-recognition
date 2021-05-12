@@ -21,9 +21,10 @@ while(True):
         mask = cv2.inRange(hsv, lower_skin, upper_skin)
         
         kernel = np.ones((3,3),np.uint8)
+        #mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
         mask = cv2.dilate(mask,kernel,iterations = 4)
         
-        mask = cv2.GaussianBlur(mask,(5,5),100) 
+        mask = cv2.GaussianBlur(mask,(7,7), 200) 
         
         contours,hierarchy= cv2.findContours(mask,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
         
@@ -32,9 +33,9 @@ while(True):
         print("Number of counters :" + str(len(contours)))
         
     #approx the contour a little
-        epsilon = 0.5*cv2.arcLength(cnt,True)
+        epsilon = 0.0005*cv2.arcLength(cnt,True)
         approx= cv2.approxPolyDP(cnt,epsilon,True)
-        
+        #cv2.polylines(mask, [approx], True, (0, 0, 255), 2)
         
     #make convex hull around hand
         hull = cv2.convexHull(cnt)
