@@ -1,164 +1,139 @@
+#import numpy as np
 import cv2
-import numpy as np
+#import imutils
 import math
+
+top, right, bottom, left = 10, 350, 225, 590
+
 cap = cv2.VideoCapture(0)
-     
-while(True):
-        
-    try:
-          
-        ret, frame = cap.read()
-        frame=cv2.flip(frame,1)
-        
-        roi=frame[100:400, 100:400]
-        
-        cv2.rectangle(frame,(100,100),(400,400),(0,255,0),0)    
-        hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
-        
-        lower_skin = np.array([0, 10, 60], dtype=np.uint8)
-        upper_skin = np.array([20, 150, 255], dtype=np.uint8)
-          
-        mask = cv2.inRange(hsv, lower_skin, upper_skin)
-        
-        kernel = np.ones((3,3),np.uint8)
-        #mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
-        mask = cv2.dilate(mask,kernel,iterations = 4)
-        
-        mask = cv2.GaussianBlur(mask,(7,7), 200) 
-        
-        contours,hierarchy= cv2.findContours(mask,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-        
-        #
-        if len(contours)>0:
-            maxArea = 0
-            hull1 = []
-            fingerList = []
-            for i in range (len(contours)):
-                cnt = contours[i]
-                area = cv2.contourArea(cnt)
-                if area>maxArea : 
-                    maxArea = area
-                    ci = i
-            cnts = contours[ci]
-            hull2 = cv2.convexHull(cnts)
-        
-            hull1 = cv2.convexHull(cnts, returnPoints=False)
-            defects = cv2.convexityDefects(cnts, hull1)
-            moments = cv2.moments(contours[ci])
-            #Central mass 
-            if moments['m00']!=0:   #m00 moments spatiaux
-                cx = int(moments['m10']/moments['m00']) # cx = M10/M00
-                cy = int(moments['m01']/moments['m00']) # cy = M01/M00
-            centerMass=(cx,cy)
-            cv2.circle(roi,centerMass,7,[100,0,255],2)
-            font = cv2.FONT_HERSHEY_SIMPLEX
-            cv2.putText(roi,'Center',tuple(centerMass),font,0.5,(255,255,255),1)
-        #
-        
-   #find contour of max area(hand)
-        cnt = max(contours, key = lambda x: cv2.contourArea(x))
-        print("Number of counters :" + str(len(contours)))
-        
-    #approx the contour a little
-        epsilon = 0.0005*cv2.arcLength(cnt,True)
-        approx= cv2.approxPolyDP(cnt,epsilon,True)
+
+while (True):
+
+    ret, frame = cap.read()
+    frame = cv2.flip(frame, 1)
+
+    roi = frame[top:bottom, right:left]
+    roi_copy = roi.copy()
+
+    roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+    roi = cv2.GaussianBlur(roi,(17,17),0)
+
+    #roi = cv2.absdiff(bg.astype('uint8'), roi)
+    #roi = cv2.bitwise_not(roi)
+    
+    et,thresh1 = cv2.threshold(roi,127,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+
+    contours, hierarchy = cv2.findContours(thresh1, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    max_cnt = max(contours, key=cv2.contourArea)
+    
+    epsilon = 0.0005*cv2.arcLength(max_cnt,True)
+    approx= cv2.approxPolyDP(max_cnt,epsilon,True)
         #cv2.polylines(mask, [approx], True, (0, 0, 255), 2)
         
     #make convex hull around hand
-        hull = cv2.convexHull(cnt)
+    hull = cv2.convexHull(max_cnt)
         
      #define area of hull and area of hand
-        areahull = cv2.contourArea(hull)
-        areacnt = cv2.contourArea(cnt)  
+    areahull = cv2.contourArea(hull)
+    areacnt = cv2.contourArea(max_cnt)  
     #find the percentage of area not covered by hand in convex hull
-        arearatio=((areahull-areacnt)/areacnt)*100
+    arearatio=((areahull-areacnt)/areacnt)*100
+
+    '''
+    hull = cv2.convexHull(max_cnt, returnPoints = True)
+    hull=hull.reshape(hull.shape[0],hull.shape[2])
+    cv2.polylines(roi_copy, [hull],True,(255,255,0),3)
+    '''
+
+    '''
+    M = cv2.moments(max_cnt)
+    cx = int(M['m10']/M['m00'])
+    cy = int(M['m01']/M['m00'])
+    cv2.drawContours(roi_copy, contours, -1, (0, 0, 255), 2)
+    cv2.circle(roi_copy, (cx, cy), 7, (0, 0, 0), -1)
+    '''
+
+    (x,y),radius = cv2.minEnclosingCircle(max_cnt)
+    center = (int(x),int(y))
+    cv2.circle(roi_copy, center, 7, (255, 0, 0), -1)
+
+    hull = cv2.convexHull(approx, returnPoints=False)
+    defects = cv2.convexityDefects(approx, hull)
     
-     #find the defects in convex hull with respect to hand
-        hull = cv2.convexHull(approx, returnPoints=False)
-        defects = cv2.convexityDefects(approx, hull)
+   # l = no. of defects
+    l=0
+    
+    for i in range(defects.shape[0]):
+        s,e,f,d = defects[i,0]
+        start = tuple(approx[s][0])
+        end = tuple(approx[e][0])
+        far = tuple(approx[f][0])
+        pt= (100,180)
         
-    # l = no. of defects
-        l=0
+        a = math.sqrt((end[0] - start[0])**2 + (end[1] - start[1])**2)
+        b = math.sqrt((far[0] - start[0])**2 + (far[1] - start[1])**2)
+        c = math.sqrt((end[0] - far[0])**2 + (end[1] - far[1])**2)
+        s = (a+b+c)/2
+        ar = math.sqrt(s*(s-a)*(s-b)*(s-c))
         
-    #code for finding no. of defects due to fingers
-        for i in range(defects.shape[0]):
-            s,e,f,d = defects[i,0]
-            start = tuple(approx[s][0])
-            end = tuple(approx[e][0])
-            far = tuple(approx[f][0])
-            pt= (100,180)
-            
-            
-            # find length of all sides of triangle
-            a = math.sqrt((end[0] - start[0])**2 + (end[1] - start[1])**2)
-            b = math.sqrt((far[0] - start[0])**2 + (far[1] - start[1])**2)
-            c = math.sqrt((end[0] - far[0])**2 + (end[1] - far[1])**2)
-            s = (a+b+c)/2
-            ar = math.sqrt(s*(s-a)*(s-b)*(s-c))
-            
-            #distance between point and convex hull
-            d=(2*ar)/a
+        d=(2*ar)/a
             
             # apply cosine rule here
-            angle = math.acos((b**2 + c**2 - a**2)/(2*b*c)) * 57
+        angle = math.acos((b**2 + c**2 - a**2)/(2*b*c)) * 57
             
         
             # ignore angles > 90 and ignore points very close to convex hull(they generally come due to noise)
-            if angle <= 90 and d>30:
-                l += 1
-                cv2.circle(roi, far, 3, [255,0,0], -1)
-            
-            #draw lines around hand
-            cv2.line(roi,start, end, [0,255,0], 2)
-            
-            
-        l+=1
+        if angle <= 90 and d>30:
+            l += 1
+            #cv2.circle(roi, far, 3, [255,0,0], -1)
         
-        #print corresponding gestures which are in their ranges
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        if l==1:
-            if areacnt<2000:
-                cv2.putText(frame,'Put hand in the box',(0,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
-            else:
-                if arearatio<12:
-                    cv2.putText(frame,'0',(0,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
-                elif arearatio<17.5:
-                    cv2.putText(frame,'Best of luck',(0,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
+        cv2.line(roi_copy,start,end,[0,255,0],2)
+       #cv2.circle(roi_copy,far,5,[0,0,255],-1)
+    l+=1
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    if l==1:
+        if areacnt<2000:
+            cv2.putText(frame,'Put hand in the box',(0,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
+        else:
+            if arearatio<12:
+                cv2.putText(frame,'0',(0,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
+            elif arearatio<17.5:
+                cv2.putText(frame,'Best of luck',(0,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
                    
-                else:
-                    cv2.putText(frame,'1',(0,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
+            else:
+                cv2.putText(frame,'1',(0,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
                     
-        elif l==2:
+    elif l==2:
             cv2.putText(frame,'2',(0,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
             
-        elif l==3:
+    elif l==3:
          
-              if arearatio<27:
-                    cv2.putText(frame,'3',(0,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
-              else:
-                    cv2.putText(frame,'ok',(0,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
+        if arearatio<27:
+            cv2.putText(frame,'3',(0,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
+        else:
+            cv2.putText(frame,'ok',(0,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
                     
-        elif l==4:
-            cv2.putText(frame,'4',(0,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
+    elif l==4:
+        cv2.putText(frame,'4',(0,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
             
-        elif l==5:
-            cv2.putText(frame,'5',(0,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
+    elif l==5:
+        cv2.putText(frame,'5',(0,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
             
-        elif l==6:
-            cv2.putText(frame,'reposition',(0,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
+    elif l==6:
+        cv2.putText(frame,'reposition',(0,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
             
-        else :
-            cv2.putText(frame,'reposition',(10,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
-            
-        #show the windows
-        cv2.imshow('mask',mask)
-        cv2.imshow('frame',frame)
-    except:
-        pass
-        
+    else :
+        cv2.putText(frame,'reposition',(10,50), font, 2, (0,0,255), 3, cv2.LINE_AA)    
     
+
+    cv2.rectangle(frame, (left, top), (right, bottom), (0,255,0), 2)
+
+    cv2.imshow('frame', frame)
+    cv2.imshow('threshold', thresh1)
+    cv2.imshow('contours', roi_copy)
     if cv2.waitKey(1) & 0xFF == ord('q'):
+        #print(range(defects.shape[0]))
         break
 
+cap.release()
 cv2.destroyAllWindows()
-cap.release() 
