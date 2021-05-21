@@ -120,17 +120,20 @@ while (True):
             cv2.putText(frame,'Put hand in the box',(0,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
         else:
             if arearatio<12:
-                cv2.putText(frame,'0',(0,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
+                cv2.putText(frame,"Stop",(0,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
             elif arearatio<17.5:
-                cv2.putText(frame,'Best of luck',(0,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
+                cv2.putText(frame,"Stop",(0,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
                    
             else:
                 cv2.putText(frame,'1',(0,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
                     
-    elif l==2 or l==3 or l==4 or l==5:
-            cv2.putText(frame,vehicleDirection,(0,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
+    elif l==2 or l==3:
+            cv2.putText(frame,vehicleDirection + " " + str(l),(0,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
             
+    elif l==4 or l==5:
+        cv2.putText(frame,"Reverse" + " " + str(l),(0,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
     #elif l==3:
+        
          
      #   if arearatio<27:
       #      cv2.putText(frame,'3',(0,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
